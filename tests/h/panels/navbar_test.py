@@ -29,12 +29,13 @@ class TestNavbar(object):
             for g in user.groups
         ]
 
-    def test_includes_groups_suggestions_when_logged_in(self, req, user):
+    def test_includes_groups_suggestions_when_logged_in(self, req, user, open_group):
         req.user = user
+        open_group.creator = user
         result = navbar({}, req)
 
         assert result['groups_suggestions'] == [{'name': g.name, 'pubid': g.pubid}
-                                                for g in user.groups]
+                                                for g in ([open_group] + user.groups)]
 
     def test_username_url_when_logged_in(self, req, user):
         req.user = user
@@ -82,6 +83,10 @@ class TestNavbar(object):
         pyramid_config.add_route('group_create', '/groups/new')
         pyramid_config.add_route('group_read', '/groups/:pubid/:slug')
         pyramid_config.add_route('logout', '/logout')
+
+    @pytest.fixture
+    def open_group(self, factories):
+        return factories.OpenGroup()
 
     @pytest.fixture
     def user(self, factories):
