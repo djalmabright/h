@@ -2,10 +2,12 @@
 
 from __future__ import unicode_literals
 
+import mock
 from mock import PropertyMock
 import pytest
 
 from h.panels.navbar import navbar
+from h.services.list_groups import ListGroupsService
 
 
 @pytest.mark.usefixtures('routes')
@@ -31,11 +33,9 @@ class TestNavbar(object):
 
     def test_includes_groups_suggestions_when_logged_in(self, req, user, open_group):
         req.user = user
-        open_group.creator = user
         result = navbar({}, req)
-
         assert result['groups_suggestions'] == [{'name': g.name, 'pubid': g.pubid}
-                                                for g in ([open_group] + user.groups)]
+                                                for g in user.groups]
 
     def test_username_url_when_logged_in(self, req, user):
         req.user = user
@@ -95,6 +95,19 @@ class TestNavbar(object):
         return user
 
     @pytest.fixture
-    def req(self, pyramid_request):
+    def req(self, pyramid_request, user):
+        pyramid_request._list_groups_service = \
+            ListGroupsService
+
+        def find_service(self, **kwargs):
+            if kwargs == {'name': 'list_groups'}:
+                service = mock.create_autospec(ListGroupsService, spec_set=True, instance=True)
+                service.associated_groups.return_value = user.groups
+                return service
+            else:
+                raise AssertionError('find_service called with unrecognised args '
+                                     '{}'.format(kwargs))
+
+        pyramid_request.find_service = lambda self=pyramid_request, **kwargs: find_service(self, **kwargs)
         pyramid_request.user = None
         return pyramid_request

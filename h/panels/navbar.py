@@ -7,7 +7,6 @@ from __future__ import unicode_literals
 from pyramid_layout.panel import panel_config
 
 from h.i18n import TranslationString as _  # noqa
-from h.services.list_groups import list_groups_factory
 
 
 @panel_config(name='navbar', renderer='h:templates/panels/navbar.html.jinja2')
@@ -33,10 +32,9 @@ def navbar(context, request, search=None, opts=None):
         user_activity_url = request.route_url('activity.user_search',
                                               username=request.user.username)
         username = request.user.username
-
     # Make all groups associated with the user visible in the search auto complete.
-    factory = list_groups_factory(None, request)
-    groups = factory.associated_groups(request.authority, request.user)
+    list_group_service = request.find_service(name='list_groups')
+    groups = list_group_service.associated_groups(request.authority, request.user)
     groups_suggestions = [{'name': group.name, 'pubid': group.pubid} for group in groups]
 
     route = request.matched_route
